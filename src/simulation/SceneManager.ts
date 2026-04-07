@@ -15,7 +15,7 @@ import { useCoreStore } from '../integration/store/coreStore';
 import { getActiveAgentSet, useTeamStore } from '../integration/store/teamStore';
 import { useUiStore } from '../integration/store/uiStore';
 import { AgentBehavior, ChatMessage } from '../types';
-import { BUBBLE_Y_OFFSET } from './constants';
+import { BUBBLE_Y_OFFSET, SCENE_BACKGROUND_COLOR, SCENE_BACKGROUND_COLOR_DARK } from './constants';
 
 /**
  * SceneManager — Visual Integration Layer.
@@ -61,9 +61,21 @@ export class SceneManager {
     const activeSet = getActiveAgentSet();
     this.simulation = new AgentSimulation(activeSet);
     this.setCoreHandler((idx, text) => this.simulation!.handleUserMessage(idx, text));
-    
+
+    // Apply current theme to scene + react to theme changes
+    this.applyThemeBackground(useUiStore.getState().theme);
+    this.unsubs.push(
+      useUiStore.subscribe((s, prev) => {
+        if (s.theme !== prev.theme) this.applyThemeBackground(s.theme);
+      })
+    );
+
     this.init();
     this.startWatchingCoreStore();
+  }
+
+  private applyThemeBackground(theme: 'light' | 'dark') {
+    this.stage.setBackgroundColor(theme === 'dark' ? SCENE_BACKGROUND_COLOR_DARK : SCENE_BACKGROUND_COLOR);
   }
 
   private startWatchingCoreStore() {

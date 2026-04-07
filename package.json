@@ -1,11 +1,9 @@
 {
-  "name": "the-delegation",
+  "name": "office-agent",
   "description": "A no-code 3D playground to explore, design, and interact with Agentic AI systems",
-  "license": "MIT",
-  "author": "Arturo Paracuellos <arturo@unboring.net>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arturitu/the-delegation.git"
+    "url": "https://github.com/sohanurislamshuvo/Office-Agent.git"
   },
   "private": true,
   "version": "0.2.0",

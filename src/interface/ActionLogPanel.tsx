@@ -370,7 +370,7 @@ ${JSON.stringify(entry.raw, null, 2)}
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `the-delegation-technical-logs-${Date.now()}.txt`;
+        a.download = `office-agent-technical-logs-${Date.now()}.txt`;
         a.click();
         URL.revokeObjectURL(url);
     };

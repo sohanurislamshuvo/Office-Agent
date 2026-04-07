@@ -6,6 +6,10 @@
   color-scheme: light;
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
 html,
 body,
 #root {
@@ -13,6 +17,8 @@ body,
   height: 100%;
   margin: 0;
   user-select: text;
+  background-color: var(--color-white);
+  color: var(--color-zinc-800);
 }
 
 button,
@@ -26,7 +32,35 @@ a {
 }
 
 @theme {
-  --color-darkDelegation: #313437;
+  /* Brand accent — indigo */
+  --color-darkDelegation: #6366f1;
+}
+
+/*
+ * Dark mode: override Tailwind's color tokens so existing utility classes
+ * (bg-white, text-zinc-700, border-zinc-100, etc.) flip automatically
+ * without rewriting hundreds of components.
+ */
+html.dark {
+  --color-white: #0b0b0f;
+  --color-zinc-50: #111114;
+  --color-zinc-100: #1a1a1f;
+  --color-zinc-200: #27272e;
+  --color-zinc-300: #3f3f47;
+  --color-zinc-400: #6b6b75;
+  --color-zinc-500: #9a9aa3;
+  --color-zinc-600: #c4c4cc;
+  --color-zinc-700: #d8d8de;
+  --color-zinc-800: #ececf0;
+  --color-zinc-900: #f7f7f9;
+  --color-darkDelegation: #818cf8; /* indigo-400 — brighter accent on dark */
+}
+
+/* Smooth theme transitions */
+html,
+body,
+#root {
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 /* Base styles for Markdown content */

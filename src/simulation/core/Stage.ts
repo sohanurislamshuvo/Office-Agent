@@ -67,6 +67,10 @@ export class Stage {
     this.camera.updateProjectionMatrix();
   }
 
+  public setBackgroundColor(hex: number) {
+    this.scene.background = new THREE.Color(hex);
+  }
+
   /** Call every frame with the character's world position to follow, or null to return to origin. */
   public setFollowTarget(pos: THREE.Vector3 | null) {
     this.followTarget = pos ? pos.clone() : null;

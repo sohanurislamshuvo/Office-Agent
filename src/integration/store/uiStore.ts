@@ -4,6 +4,23 @@ import { AgentState, CharacterState } from '../../types';
 import { useTeamStore, getActiveAgentSet } from './teamStore';
 import { DEFAULT_MODELS } from '../../core/llm/constants';
 
+const getInitialTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'light';
+  try {
+    const saved = localStorage.getItem('app-theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {}
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const applyThemeToDom = (theme: 'light' | 'dark') => {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+};
+
+// Apply once at module load so the initial paint matches the persisted theme
+applyThemeToDom(getInitialTheme());
+
 export const useUiStore = create<CharacterState>()(
   (set) => ({
     isThinking: false,
@@ -43,6 +60,19 @@ export const useUiStore = create<CharacterState>()(
         model: DEFAULT_MODELS.text
       };
     })(),
+
+    theme: getInitialTheme(),
+    setTheme: (theme: 'light' | 'dark') => {
+      try { localStorage.setItem('app-theme', theme); } catch {}
+      applyThemeToDom(theme);
+      set({ theme });
+    },
+    toggleTheme: () => set((s) => {
+      const next: 'light' | 'dark' = s.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('app-theme', next); } catch {}
+      applyThemeToDom(next);
+      return { theme: next };
+    }),
 
     setThinking: (isThinking: boolean) => set({ isThinking }),
     setIsTyping: (isTyping: boolean) => set({ isTyping }),

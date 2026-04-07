@@ -1,11 +1,11 @@
-import { KeyRound, Maximize2, Settings } from 'lucide-react';
+import { KeyRound, Maximize2, Moon, Settings, Sun } from 'lucide-react';
 import React from 'react';
 import { useCoreStore } from '../integration/store/coreStore';
 import { useUiStore } from '../integration/store/uiStore';
 import BYOKModal from './BYOKModal';
 
 const Header: React.FC = () => {
-  const { llmConfig, isBYOKOpen, setBYOKOpen } = useUiStore();
+  const { llmConfig, isBYOKOpen, setBYOKOpen, theme, toggleTheme } = useUiStore();
   const { setViewMode } = useCoreStore();
   const hasKey = !!llmConfig.apiKey;
 
@@ -21,8 +21,17 @@ const Header: React.FC = () => {
 
   return (
     <header className="h-14 border-b border-zinc-100 flex items-center justify-between px-6 bg-white shrink-0 relative z-40">
-      {/* Left: Author Link */}
-      <div className="flex items-center gap-2">
+      {/* Left: Brand + Author Link */}
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-darkDelegation flex items-center justify-center shadow-sm">
+            <span className="text-white text-xs font-black">OA</span>
+          </div>
+          <span className="text-sm font-black tracking-tight text-zinc-800">
+            Office<span className="text-darkDelegation">-Agent</span>
+          </span>
+        </div>
+        <div className="w-px h-4 bg-zinc-200" />
         <a
           href="https://github.com/sohanurislamshuvo"
           target="_blank"
@@ -50,6 +59,13 @@ const Header: React.FC = () => {
         <div className="w-px h-4 bg-zinc-200" />
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="text-zinc-400 hover:text-darkDelegation transition-colors p-1"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           <button
             onClick={handleFullscreen}
             className="text-zinc-400 hover:text-darkDelegation transition-colors p-1"

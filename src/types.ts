@@ -40,6 +40,11 @@ export interface CharacterState {
   // BYOK LLM Configuration
   llmConfig: LLMConfig;
 
+  // Theme
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
+  toggleTheme: () => void;
+
   setThinking: (isThinking: boolean) => void;
   setIsTyping: (isTyping: boolean) => void;
   setInspectorTab: (tab: 'info' | 'chat') => void;
