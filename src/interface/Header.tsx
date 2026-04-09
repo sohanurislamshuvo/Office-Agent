@@ -1,13 +1,15 @@
-import { KeyRound, Maximize2, Moon, Settings, Sun } from 'lucide-react';
+import { Github, KeyRound, Maximize2, Moon, Settings, Sun } from 'lucide-react';
 import React from 'react';
 import { useCoreStore } from '../integration/store/coreStore';
 import { useUiStore } from '../integration/store/uiStore';
 import BYOKModal from './BYOKModal';
+import GitHubModal from './GitHubModal';
 
 const Header: React.FC = () => {
-  const { llmConfig, isBYOKOpen, setBYOKOpen, theme, toggleTheme } = useUiStore();
+  const { llmConfig, isBYOKOpen, setBYOKOpen, theme, toggleTheme, githubConfig, isGitHubModalOpen, setGitHubModalOpen } = useUiStore();
   const { setViewMode } = useCoreStore();
   const hasKey = !!llmConfig.apiKey;
+  const hasGithubPat = !!githubConfig.pat;
 
   const handleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -76,10 +78,20 @@ const Header: React.FC = () => {
           <button
             onClick={() => setBYOKOpen(true)}
             className="relative text-zinc-400 hover:text-darkDelegation transition-colors p-1"
-            title="API Key (BYOK)"
+            title="Gemini API Key (BYOK)"
           >
             <KeyRound size={16} className={hasKey ? 'text-emerald-500 hover:text-emerald-600' : ''} />
             {hasKey && (
+              <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            )}
+          </button>
+          <button
+            onClick={() => setGitHubModalOpen(true)}
+            className="relative text-zinc-400 hover:text-darkDelegation transition-colors p-1"
+            title={hasGithubPat ? `GitHub: connected as @${githubConfig.username}` : 'GitHub Token (for Engineering Team)'}
+          >
+            <Github size={16} className={hasGithubPat ? 'text-emerald-500 hover:text-emerald-600' : ''} />
+            {hasGithubPat && (
               <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
             )}
           </button>
@@ -88,6 +100,9 @@ const Header: React.FC = () => {
 
       {isBYOKOpen && (
         <BYOKModal key="byok-modal" onClose={() => setBYOKOpen(false)} />
+      )}
+      {isGitHubModalOpen && (
+        <GitHubModal key="github-modal" onClose={() => setGitHubModalOpen(false)} />
       )}
     </header>
   );

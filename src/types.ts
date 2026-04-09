@@ -2,6 +2,11 @@ import type * as THREE from 'three/webgpu';
 
 import { LLMConfig } from './core/llm/types';
 
+export interface GithubConfig {
+  pat: string;
+  username: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
   text: string;
@@ -39,6 +44,13 @@ export interface CharacterState {
 
   // BYOK LLM Configuration
   llmConfig: LLMConfig;
+
+  // BYOK GitHub Configuration (for Engineering Team's create_github_repo tool)
+  githubConfig: GithubConfig;
+  isGitHubModalOpen: boolean;
+  githubError: string | null;
+  setGitHubModalOpen: (open: boolean, error?: string | null) => void;
+  setGithubConfig: (config: Partial<GithubConfig>) => void;
 
   // Theme
   theme: 'light' | 'dark';

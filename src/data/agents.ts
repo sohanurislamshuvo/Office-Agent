@@ -322,6 +322,65 @@ export const AGENTIC_SETS: AgenticSystem[] = [
         }
       ]
     }
+  },
+  {
+    id: 'engineering-team',
+    teamName: 'Engineering Team',
+    teamType: 'Software Studio',
+    teamDescription: 'A full-stack engineering team that designs, writes, and ships real code to a brand new GitHub repository. Requires a GitHub Personal Access Token.',
+    color: '#7c3aed',
+    outputType: 'text',
+    outputModel: DEFAULT_MODELS.text,
+    outputAutoApprove: true,
+    user: { index: 0, model: 'Human', position: { x: 0, y: 0 } },
+    leadAgent: {
+      id: 'eng-tech-lead',
+      index: 1,
+      name: 'Tech Lead',
+      description: 'Senior solutions architect. Clarifies requirements, picks the stack, and breaks the project into focused tasks for each engineering specialist. After all engineers are done, parses every code block from every completed task into a files array and calls create_github_repo to ship the project to a brand new GitHub repository.',
+      color: '#7c3aed',
+      model: DEFAULT_MODELS.text,
+      humanInTheLoop: true,
+      position: { x: 0, y: 130 },
+      subagents: [
+        {
+          id: 'eng-backend',
+          index: 2,
+          name: 'Backend Engineer',
+          description: 'Implements server logic, API routes, data models, and business rules. Output is REAL, COMPILABLE CODE in Markdown code blocks. Each block starts with a path comment line: // src/server/api.ts',
+          color: '#0ea5e9',
+          model: DEFAULT_MODELS.text,
+          position: { x: -400, y: 280 }
+        },
+        {
+          id: 'eng-frontend',
+          index: 3,
+          name: 'Frontend Engineer',
+          description: 'Implements React/HTML/CSS UI components, state management, and styling. Output is REAL, COMPILABLE CODE in Markdown code blocks. Each block starts with a path comment line: // src/App.tsx',
+          color: '#10b981',
+          model: DEFAULT_MODELS.text,
+          position: { x: -130, y: 280 }
+        },
+        {
+          id: 'eng-devops',
+          index: 4,
+          name: 'DevOps Engineer',
+          description: 'Produces package.json, README.md, .gitignore, Dockerfile, and CI config files. Output is REAL config files in Markdown code blocks. Each block starts with a path comment line: # README.md or // package.json',
+          color: '#f59e0b',
+          model: DEFAULT_MODELS.text,
+          position: { x: 130, y: 280 }
+        },
+        {
+          id: 'eng-qa',
+          index: 5,
+          name: 'QA Engineer',
+          description: 'Writes unit and integration tests. Output is REAL test files in Markdown code blocks. Each block starts with a path comment line: // tests/app.test.ts',
+          color: '#ef4444',
+          model: DEFAULT_MODELS.text,
+          position: { x: 400, y: 280 }
+        }
+      ]
+    }
   }
 ];
 

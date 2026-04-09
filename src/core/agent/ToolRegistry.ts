@@ -3,6 +3,7 @@ import { setUserBrief } from './tools/setUserBrief';
 import { proposeTask } from './tools/proposeTask';
 import { completeTask } from './tools/completeTask';
 import { deliverProject } from './tools/deliverProject';
+import { createGithubRepo } from './tools/createGithubRepo';
 
 export interface ToolCall {
   name: string;
@@ -22,8 +23,9 @@ export interface AgentActionContext {
 export class ToolRegistry {
   /**
    * Processes a tool call by dispatching it to the appropriate tool handler.
+   * Returns a promise so async tools (like create_github_repo) can be awaited.
    */
-  public static process(agent: AgentActionContext, toolCall: ToolCall): boolean {
+  public static async process(agent: AgentActionContext, toolCall: ToolCall): Promise<boolean> {
     const { name, args } = toolCall;
 
     switch (name) {
@@ -35,15 +37,23 @@ export class ToolRegistry {
         return completeTask(agent, args);
       case 'deliver_project':
         return deliverProject(agent, args);
+      case 'create_github_repo':
+        return await createGithubRepo(agent, args);
       default:
         console.warn(`[ToolRegistry] Unknown tool: ${name}`);
         return false;
     }
   }
 
-  public static getDefinitions(agentIndex: number, phase: string, subagentsCount: number = 0): any[] {
+  public static getDefinitions(
+    agentIndex: number,
+    phase: string,
+    subagentsCount: number = 0,
+    teamId?: string
+  ): any[] {
     const isLead = agentIndex === 1;
     const isManager = subagentsCount > 0;
+    const isEngineeringTeam = teamId === 'engineering-team';
     const tools: any[] = [];
 
     // 1. Idle Phase: Only Lead can set the brief
@@ -113,13 +123,60 @@ export class ToolRegistry {
             description: 'Final delivery of the full project results.',
             parameters: {
               type: 'object',
-              properties: { 
-                output: { 
-                  type: 'string', 
-                  description: 'Full project document in Markdown. NO attribution needed.' 
-                } 
+              properties: {
+                output: {
+                  type: 'string',
+                  description: 'Full project document in Markdown. NO attribution needed.'
+                }
               },
               required: ['output']
+            }
+          }
+        });
+      }
+
+      // 3. Engineering Team only: create_github_repo (lead only)
+      if (isLead && isEngineeringTeam) {
+        tools.push({
+          type: 'function',
+          function: {
+            name: 'create_github_repo',
+            description: 'Create a real GitHub repository and push the project files. Use ONLY at the end of the project, AFTER all engineers have completed their tasks. Parse every code block from every completed task into the files array.',
+            parameters: {
+              type: 'object',
+              properties: {
+                repoName: {
+                  type: 'string',
+                  description: 'Repo name. Lowercase letters, digits, and hyphens only. No spaces.'
+                },
+                description: {
+                  type: 'string',
+                  description: 'Short one-line description of the project.'
+                },
+                isPrivate: {
+                  type: 'boolean',
+                  description: 'Whether the repo should be private. Defaults to false (public).'
+                },
+                files: {
+                  type: 'array',
+                  description: 'Every project file. Each file has a repo-relative path and full string contents. Always include README.md and .gitignore.',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      path: {
+                        type: 'string',
+                        description: 'Repo-relative path with forward slashes, e.g. src/App.tsx or package.json.'
+                      },
+                      content: {
+                        type: 'string',
+                        description: 'Full file contents as a UTF-8 string.'
+                      }
+                    },
+                    required: ['path', 'content']
+                  }
+                }
+              },
+              required: ['repoName', 'description', 'files']
             }
           }
         });
