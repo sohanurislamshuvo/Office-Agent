@@ -61,6 +61,19 @@ export const useUiStore = create<CharacterState>()(
       };
     })(),
 
+    githubConfig: (() => {
+      try {
+        const saved = localStorage.getItem('github-config');
+        if (saved) return JSON.parse(saved);
+      } catch { }
+      return { pat: '', username: '' };
+    })(),
+    isGitHubModalOpen: false,
+    githubError: null,
+    setGitHubModalOpen: (open: boolean, error: string | null = null) =>
+      set({ isGitHubModalOpen: open, githubError: error }),
+    setGithubConfig: (config) => set((s) => ({ githubConfig: { ...s.githubConfig, ...config } })),
+
     theme: getInitialTheme(),
     setTheme: (theme: 'light' | 'dark') => {
       try { localStorage.setItem('app-theme', theme); } catch {}

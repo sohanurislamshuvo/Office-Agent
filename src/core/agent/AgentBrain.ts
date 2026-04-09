@@ -78,7 +78,7 @@ export class AgentBrain {
       }
       const allAgents = this.host.simulation.getAllAgents();
       const systemPrompt = PromptBuilder.buildSystemPrompt(this.host.data, core.phase, core.userBrief, allAgents);
-      const toolDefs = options.tools || ToolRegistry.getDefinitions(this.host.data.index, core.phase, this.host.data.subagents?.length || 0);
+      const toolDefs = options.tools || ToolRegistry.getDefinitions(this.host.data.index, core.phase, this.host.data.subagents?.length || 0, teamId);
 
       // 3. Log and Execute LLM Call
       core.addRequestLog({
@@ -157,7 +157,7 @@ export class AgentBrain {
 
       // 7. Process Actions (Tools)
       for (const tc of toolCalls) {
-        const handled = ToolRegistry.process(this.host as any, tc);
+        const handled = await ToolRegistry.process(this.host as any, tc);
         if (tc.name === 'deliver_project' && handled) {
           this.handleFinalAssetGeneration(tc.args.output);
         }
@@ -167,12 +167,44 @@ export class AgentBrain {
     } catch (error) {
       console.error(`[AgentBrain:${this.host.data.name}] Logic error:`, error);
       const errMsg = error instanceof Error ? error.message : String(error);
-      useUiStore.getState().setBYOKOpen(true, errMsg);
+      AgentBrain.surfaceError(this.host.data.index, errMsg);
       throw error;
     } finally {
       this.isThinking = false;
       this.host.simulation.processScheduledTasks();
     }
+  }
+
+  /**
+   * Classify an LLM error and route it to the right UI surface.
+   *
+   * - Auth/key problems → BYOK modal (the user must fix their key)
+   * - Server overload (503), quota (429), network, malformed → Action Log
+   *   (these are transient and have nothing to do with the API key)
+   *
+   * Before this classifier existed, every error opened the BYOK modal, which
+   * misled users into thinking their key was broken on every Gemini hiccup.
+   */
+  private static surfaceError(agentIndex: number, errMsg: string): void {
+    const isAuthError = /\b(401|403)\b|api[\s_-]?key|invalid[_\s-]?key|unauthorized|permission[_\s-]?denied|missing.*key/i.test(errMsg);
+
+    if (isAuthError) {
+      useUiStore.getState().setBYOKOpen(true, errMsg);
+      return;
+    }
+
+    const isOverload = /\b503\b|overload|unavailable|high demand/i.test(errMsg);
+    const isQuota = /\b429\b|quota|rate.?limit/i.test(errMsg);
+    const prefix = isOverload
+      ? 'Gemini server overloaded (503). Wait a few seconds and retry.'
+      : isQuota
+        ? 'Gemini quota or rate limit hit (429). Wait, or switch to a less-loaded model.'
+        : 'Gemini API error.';
+
+    useCoreStore.getState().addLogEntry({
+      agentIndex,
+      action: `${prefix} ${errMsg}`,
+    });
   }
 
   /** Autonomous Intent: Start the project strategy. */
@@ -292,12 +324,7 @@ export class AgentBrain {
       console.error('[AgentBrain] Final asset generation failed:', error);
       core.setIsGeneratingAsset(false);
       const errMsg = error instanceof Error ? error.message : String(error);
-      useUiStore.getState().setBYOKOpen(true, errMsg);
-      core.addLogEntry({
-        agentIndex: 0,
-        action: `Error generating final ${activeTeam.outputType}: ${errMsg}`,
-        taskId: undefined
-      });
+      AgentBrain.surfaceError(0, `Final ${activeTeam.outputType} generation failed: ${errMsg}`);
     }
   }
 
