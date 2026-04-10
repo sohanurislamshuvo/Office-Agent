@@ -4,6 +4,13 @@ import { proposeTask } from './tools/proposeTask';
 import { completeTask } from './tools/completeTask';
 import { deliverProject } from './tools/deliverProject';
 import { createGithubRepo } from './tools/createGithubRepo';
+import { webSearch } from './tools/webSearch';
+import { readFile } from './tools/readFile';
+import { writeFile } from './tools/writeFile';
+import { runCode } from './tools/runCode';
+import { callApi } from './tools/callApi';
+import { agentChat } from './tools/agentChat';
+import { createSubtask } from './tools/createSubtask';
 
 export interface ToolCall {
   name: string;
@@ -11,19 +18,22 @@ export interface ToolCall {
 }
 
 /**
- * Interface that decuples the ToolRegistry from the 3D Simulation (AgentHost).
+ * Interface that decouples the ToolRegistry from the 3D Simulation (AgentHost).
  * This allows the tool logic to be tested and used independently of the simulation.
  */
 export interface AgentActionContext {
-  data: { index: number; name: string, subagents?: any[], humanInTheLoop?: boolean };
+  data: { index: number; name: string, subagents?: any[], humanInTheLoop?: boolean, provider?: string, model?: string, description?: string };
   setState: (state: 'idle' | 'moving' | 'working' | 'on_hold' | 'talking') => void;
   appendHistory: (message: LLMMessage) => void;
+  simulation?: {
+    getAllAgents: () => any[];
+  };
 }
 
 export class ToolRegistry {
   /**
    * Processes a tool call by dispatching it to the appropriate tool handler.
-   * Returns a promise so async tools (like create_github_repo) can be awaited.
+   * Returns a promise so async tools can be awaited.
    */
   public static async process(agent: AgentActionContext, toolCall: ToolCall): Promise<boolean> {
     const { name, args } = toolCall;
@@ -39,6 +49,20 @@ export class ToolRegistry {
         return deliverProject(agent, args);
       case 'create_github_repo':
         return await createGithubRepo(agent, args);
+      case 'web_search':
+        return await webSearch(agent, args);
+      case 'read_file':
+        return readFile(agent, args);
+      case 'write_file':
+        return writeFile(agent, args);
+      case 'run_code':
+        return await runCode(agent, args);
+      case 'call_api':
+        return await callApi(agent, args);
+      case 'agent_to_agent_chat':
+        return await agentChat(agent, args);
+      case 'create_subtask':
+        return createSubtask(agent, args);
       default:
         console.warn(`[ToolRegistry] Unknown tool: ${name}`);
         return false;
@@ -135,7 +159,7 @@ export class ToolRegistry {
         });
       }
 
-      // 3. Engineering Team only: create_github_repo (lead only)
+      // Engineering Team only: create_github_repo (lead only)
       if (isLead && isEngineeringTeam) {
         tools.push({
           type: 'function',
@@ -181,6 +205,123 @@ export class ToolRegistry {
           }
         });
       }
+
+      // ── New Tools (available to all agents in working phase) ──
+
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'web_search',
+          description: 'Search the web for information. Uses Google Search via Gemini. Returns relevant results as text.',
+          parameters: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'The search query.' }
+            },
+            required: ['query']
+          }
+        }
+      });
+
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'read_file',
+          description: 'Read a file from the virtual project filesystem.',
+          parameters: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: 'File path, e.g. src/index.ts' }
+            },
+            required: ['path']
+          }
+        }
+      });
+
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'write_file',
+          description: 'Write or update a file in the virtual project filesystem.',
+          parameters: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: 'File path, e.g. src/index.ts' },
+              content: { type: 'string', description: 'Full file contents.' }
+            },
+            required: ['path', 'content']
+          }
+        }
+      });
+
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'run_code',
+          description: 'Execute JavaScript code in a sandboxed environment. Returns console output and the return value. 5-second timeout.',
+          parameters: {
+            type: 'object',
+            properties: {
+              code: { type: 'string', description: 'JavaScript code to execute.' },
+              language: { type: 'string', description: 'Programming language. Only "javascript" is supported.' }
+            },
+            required: ['code']
+          }
+        }
+      });
+
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'call_api',
+          description: 'Make an HTTP request to an external API. Returns the response status and body. 15-second timeout.',
+          parameters: {
+            type: 'object',
+            properties: {
+              url: { type: 'string', description: 'The full URL to request.' },
+              method: { type: 'string', description: 'HTTP method: GET, POST, PUT, DELETE, PATCH. Defaults to GET.' },
+              headers: {
+                type: 'object',
+                description: 'Request headers as key-value pairs.'
+              },
+              body: { type: 'string', description: 'Request body (for POST/PUT/PATCH). Send JSON as a string.' }
+            },
+            required: ['url']
+          }
+        }
+      });
+
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'agent_to_agent_chat',
+          description: 'Send a direct message to another agent and get their response. Useful for collaboration, asking questions, or requesting input from a teammate.',
+          parameters: {
+            type: 'object',
+            properties: {
+              agentId: { type: 'integer', description: 'Target agent index.' },
+              message: { type: 'string', description: 'The message to send.' }
+            },
+            required: ['agentId', 'message']
+          }
+        }
+      });
+
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'create_subtask',
+          description: 'Break your current work into a smaller subtask assigned to yourself. Useful for decomposing complex work.',
+          parameters: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'Subtask title.' },
+              description: { type: 'string', description: 'What needs to be done.' }
+            },
+            required: ['title', 'description']
+          }
+        }
+      });
     }
 
     return tools;

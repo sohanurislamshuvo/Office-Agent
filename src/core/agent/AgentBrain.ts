@@ -1,5 +1,7 @@
-import { LLMMessage } from '../llm/types';
+import { LLMMessage, LLMProviderType } from '../llm/types';
 import { GeminiProvider } from '../llm/providers/GeminiProvider';
+import { createProvider } from '../llm/providers';
+import { DEFAULT_PROVIDER } from '../llm/constants';
 import { useUiStore } from '../../integration/store/uiStore';
 import { useCoreStore } from '../../integration/store/coreStore';
 import { useTeamStore } from '../../integration/store/teamStore';
@@ -38,8 +40,10 @@ export class AgentBrain {
       this.refreshFromStore();
       const core = useCoreStore.getState();
       const llmConfig = useUiStore.getState().llmConfig;
-      if (!llmConfig.apiKey) throw new Error('Gemini API key is required');
-      const provider = new GeminiProvider(llmConfig.apiKey);
+      const agentProvider: LLMProviderType = this.host.data.provider || DEFAULT_PROVIDER;
+      const providerKey = llmConfig.providerKeys?.[agentProvider] || (agentProvider === 'gemini' ? llmConfig.apiKey : undefined);
+      if (!providerKey) throw new Error(`API key for ${agentProvider} is required. Configure it in the API Keys modal.`);
+      const provider = createProvider(agentProvider, providerKey);
       const model = this.host.data.model || llmConfig.model;
       const teamId = useTeamStore.getState().selectedAgentSetId;
       const activeTeam = useTeamStore.getState().customSystems.find(s => s.id === teamId)
@@ -196,10 +200,10 @@ export class AgentBrain {
     const isOverload = /\b503\b|overload|unavailable|high demand/i.test(errMsg);
     const isQuota = /\b429\b|quota|rate.?limit/i.test(errMsg);
     const prefix = isOverload
-      ? 'Gemini server overloaded (503). Wait a few seconds and retry.'
+      ? 'LLM server overloaded (503). Wait a few seconds and retry.'
       : isQuota
-        ? 'Gemini quota or rate limit hit (429). Wait, or switch to a less-loaded model.'
-        : 'Gemini API error.';
+        ? 'LLM quota or rate limit hit (429). Wait, or switch to a less-loaded model.'
+        : 'LLM API error.';
 
     useCoreStore.getState().addLogEntry({
       agentIndex,
@@ -267,8 +271,9 @@ export class AgentBrain {
 
     try {
       const llmConfig = useUiStore.getState().llmConfig;
-      if (!llmConfig.apiKey) throw new Error('Gemini API key is required');
-      const provider = new GeminiProvider(llmConfig.apiKey) as any;
+      const geminiKey = llmConfig.providerKeys?.gemini || llmConfig.apiKey;
+      if (!geminiKey) throw new Error('Gemini API key is required for media generation (image/audio/video).');
+      const provider = new GeminiProvider(geminiKey) as any;
       const model = options.model || activeTeam.outputModel || llmConfig.model;
 
       core.addLogEntry({

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { LLMMessage, LLMTokenUsage, LLMToolCall, LLMToolDefinition } from '../../core/llm/types';
-import { DEFAULT_MODELS, AVAILABLE_MODELS } from '../../core/llm/constants';
+import { DEFAULT_MODELS, AVAILABLE_MODELS, ALL_TEXT_MODELS } from '../../core/llm/constants';
 import { calculateCost } from '../../core/llm/pricing';
 import { useTeamStore } from './teamStore';
 import { useUiStore } from './uiStore';
@@ -93,6 +93,9 @@ interface CoreState {
   actionLog: ActionLogEntry[]
   debugLog: DebugLogEntry[]
 
+  // ── Virtual Filesystem ────────────────────────────────────────
+  virtualFiles: Record<string, string>
+
   // ── Conversation histories (Agnostic standard) ───────────────
   agentHistories: Record<number, LLMMessage[]>
   agentSummaries: Record<number, string>
@@ -148,6 +151,10 @@ interface CoreState {
   resetProject: () => void;
   setViewMode: (mode: 'simulation' | 'design') => void;
 
+  // ── Actions — Virtual Filesystem ────────────────────────────
+  setVirtualFile: (path: string, content: string) => void;
+  deleteVirtualFile: (path: string) => void;
+
   // ── Simulation Sync ──────────────────────────────────────────
   setAgentHistory: (agentIndex: number, history: LLMMessage[]) => void;
 }
@@ -161,7 +168,7 @@ export const useCoreStore = create<CoreState>()(
       referenceImages: [],
       phase: 'idle',
       finalOutput: null,
-      availableModels: [...AVAILABLE_MODELS.text],
+      availableModels: ALL_TEXT_MODELS,
       totalTokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       agentTokenUsage: {},
       totalEstimatedCost: 0,
@@ -172,6 +179,7 @@ export const useCoreStore = create<CoreState>()(
       isReviewingOutput: false,
       pendingOutputPrompt: '',
       pendingOutputParams: {},
+      virtualFiles: {},
       tasks: [],
       actionLog: [],
       debugLog: [],
@@ -191,6 +199,7 @@ export const useCoreStore = create<CoreState>()(
         userBrief: '',
         phase: 'idle',
         finalOutput: null,
+        virtualFiles: {},
         tasks: [],
         actionLog: [],
         debugLog: [],
@@ -469,6 +478,14 @@ export const useCoreStore = create<CoreState>()(
         set({ isLogOpen: open, logFilterAgentIndex: filterAgent ?? null }),
       setFinalOutputOpen: (open) => set({ isFinalOutputOpen: open }),
       setIsResizing: (resizing) => set({ isResizing: resizing }),
+
+      setVirtualFile: (path, content) => set((s) => ({
+        virtualFiles: { ...s.virtualFiles, [path]: content }
+      })),
+      deleteVirtualFile: (path) => set((s) => {
+        const { [path]: _, ...rest } = s.virtualFiles;
+        return { virtualFiles: rest };
+      }),
 
       setAgentHistory: (agentIndex, history) => set((s) => ({
         agentHistories: { ...s.agentHistories, [agentIndex]: history }

@@ -30,10 +30,13 @@ export interface LLMToolDefinition {
   };
 }
 
+export type LLMProviderType = 'gemini' | 'openai' | 'anthropic';
+
 export interface LLMConfig {
   apiKey?: string;
   baseUrl?: string;
   model: string;
+  providerKeys?: Partial<Record<LLMProviderType, string>>;
 }
 
 export interface LLMRequestDetails {

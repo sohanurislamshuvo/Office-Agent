@@ -4,6 +4,8 @@ import { AgentNode, AgenticSystem, getAllCharacters } from '../../data/agents';
 import { USER_COLOR, USER_COLOR_LIGHT, USER_COLOR_SOFT } from '../../theme/brand';
 import { useCoreStore } from '../../integration/store/coreStore';
 import { useTeamStore } from '../../integration/store/teamStore';
+import { PROVIDER_TEXT_MODELS, PROVIDER_LABELS, getProviderForModel } from '../../core/llm/constants';
+import { LLMProviderType } from '../../core/llm/types';
 import { Avatar } from '../components/Avatar';
 import { ColorPicker } from './ColorPicker';
 import { InfoBubble } from '../components/InfoBubble';
@@ -187,12 +189,20 @@ export const AgentConfigPanel: React.FC<AgentConfigPanelProps> = ({
               ) : (
                 <select
                   value={editData.model || 'gemini-3-flash-preview'}
-                  onChange={(e) => updateDraft({ model: e.target.value })}
+                  onChange={(e) => {
+                    const newModel = e.target.value;
+                    const newProvider = getProviderForModel(newModel);
+                    updateDraft({ model: newModel, provider: newProvider });
+                  }}
                   className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-black/5 cursor-pointer lowercase"
                 >
-                  {availableModels.map(m => <option key={m} value={m} className="lowercase">{m}</option>)}
+                  {(Object.entries(PROVIDER_TEXT_MODELS) as [LLMProviderType, string[]][]).map(([provider, models]) => (
+                    <optgroup key={provider} label={PROVIDER_LABELS[provider]}>
+                      {models.map(m => <option key={m} value={m} className="lowercase">{m}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
-              ), 'The specific Gemini model this agent will use.')}
+              ), 'The LLM provider and model this agent will use for reasoning.')}
             </div>
 
             {/* Content Group */}

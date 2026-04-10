@@ -91,7 +91,8 @@ RULES:
 2. Tools only in WORKING (except set_user_brief in IDLE).
 3. QUALITY: If your node has 'Human-in-the-loop' enabled, your 'complete_task' result will be reviewed by the user before completion. 
 4. NO META-TALK: Avoid "I have finished X", "Here is the result". Use the tool payload for content and Chat for conversation only.${outputInstruction}${imageInstruction}
-5. LANGUAGE: You MUST generate all systemic outputs (tasks, 'complete_task' results, and 'deliver_project' prompts) in the same language as the 'Brief' or the user's interaction. If the project description is in Spanish, EVERYTHING you generate must be in Spanish.${engineeringInstruction}${engineeringEngineerInstruction}
+5. LANGUAGE: You MUST generate all systemic outputs (tasks, 'complete_task' results, and 'deliver_project' prompts) in the same language as the 'Brief' or the user's interaction. If the project description is in Spanish, EVERYTHING you generate must be in Spanish.
+6. UTILITY TOOLS: You have web_search (Google Search), read_file/write_file (virtual filesystem), run_code (sandboxed JS), call_api (HTTP requests), agent_to_agent_chat (message a teammate), and create_subtask (self-assign sub-work). Use them when they help.${engineeringInstruction}${engineeringEngineerInstruction}
 Goal: ${objectives[phase as keyof typeof objectives] || ''}`;
   }
 }

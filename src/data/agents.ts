@@ -1,5 +1,6 @@
 import { USER_COLOR } from '../theme/brand';
 import { DEFAULT_MODELS } from '../core/llm/constants';
+import { LLMProviderType } from '../core/llm/types';
 
 export const USER_ID = 'user';
 export const USER_NAME = 'User';
@@ -12,6 +13,7 @@ export interface AgentNode {
   name: string;
   description: string;
   color: string;
+  provider?: LLMProviderType;
   model: string;
   humanInTheLoop?: boolean;
   position?: { x: number; y: number };

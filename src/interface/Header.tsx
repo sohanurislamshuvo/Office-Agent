@@ -8,7 +8,7 @@ import GitHubModal from './GitHubModal';
 const Header: React.FC = () => {
   const { llmConfig, isBYOKOpen, setBYOKOpen, theme, toggleTheme, githubConfig, isGitHubModalOpen, setGitHubModalOpen } = useUiStore();
   const { setViewMode } = useCoreStore();
-  const hasKey = !!llmConfig.apiKey;
+  const hasKey = !!(llmConfig.providerKeys?.gemini || llmConfig.providerKeys?.openai || llmConfig.providerKeys?.anthropic || llmConfig.apiKey);
   const hasGithubPat = !!githubConfig.pat;
 
   const handleFullscreen = () => {
@@ -78,7 +78,7 @@ const Header: React.FC = () => {
           <button
             onClick={() => setBYOKOpen(true)}
             className="relative text-zinc-400 hover:text-darkDelegation transition-colors p-1"
-            title="Gemini API Key (BYOK)"
+            title="API Keys (BYOK)"
           >
             <KeyRound size={16} className={hasKey ? 'text-emerald-500 hover:text-emerald-600' : ''} />
             {hasKey && (
