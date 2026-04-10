@@ -43,12 +43,23 @@ export class AgentSimulation {
           this.triggerAutonomousStrategy();
         }
 
-        // B. Task Lifecycle: Process SCHEDULED tasks
+        // B. Re-entry from done: prompt lead to fix build issues
+        if (state.phase === 'working' && prevState.phase === 'done') {
+          const lead = this.getAgent(this.system.leadAgent.index);
+          if (lead && !lead.isThinking) {
+            lead.think(
+              'The project has been reopened for fixes. Check build status with check_build, diagnose any failures, re-task engineers if needed, push fixes with push_fix, and deliver_project when the build passes.',
+              { silent: true }
+            );
+          }
+        }
+
+        // C. Task Lifecycle: Process SCHEDULED tasks
         if (state.phase === 'working') {
           this.processScheduledTasks();
         }
 
-        // C. Project Completion
+        // D. Project Completion
         this.checkProjectCompletion();
       })
     );

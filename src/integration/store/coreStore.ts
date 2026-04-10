@@ -93,6 +93,9 @@ interface CoreState {
   actionLog: ActionLogEntry[]
   debugLog: DebugLogEntry[]
 
+  // ── GitHub Repo (Engineering Team) ────────────────────────────
+  githubRepo: { owner: string; repo: string; branch: string; htmlUrl: string } | null
+
   // ── Virtual Filesystem ────────────────────────────────────────
   virtualFiles: Record<string, string>
 
@@ -151,6 +154,10 @@ interface CoreState {
   resetProject: () => void;
   setViewMode: (mode: 'simulation' | 'design') => void;
 
+  // ── Actions — GitHub Repo ────────────────────────────────────
+  setGithubRepo: (repo: { owner: string; repo: string; branch: string; htmlUrl: string }) => void;
+  reopenProject: () => void;
+
   // ── Actions — Virtual Filesystem ────────────────────────────
   setVirtualFile: (path: string, content: string) => void;
   deleteVirtualFile: (path: string) => void;
@@ -179,6 +186,7 @@ export const useCoreStore = create<CoreState>()(
       isReviewingOutput: false,
       pendingOutputPrompt: '',
       pendingOutputParams: {},
+      githubRepo: null,
       virtualFiles: {},
       tasks: [],
       actionLog: [],
@@ -199,6 +207,7 @@ export const useCoreStore = create<CoreState>()(
         userBrief: '',
         phase: 'idle',
         finalOutput: null,
+        githubRepo: null,
         virtualFiles: {},
         tasks: [],
         actionLog: [],
@@ -478,6 +487,16 @@ export const useCoreStore = create<CoreState>()(
         set({ isLogOpen: open, logFilterAgentIndex: filterAgent ?? null }),
       setFinalOutputOpen: (open) => set({ isFinalOutputOpen: open }),
       setIsResizing: (resizing) => set({ isResizing: resizing }),
+
+      setGithubRepo: (repo) => set({ githubRepo: repo }),
+      reopenProject: () => set((s) => {
+        if (s.phase !== 'done') return {};
+        return {
+          phase: 'working' as ProjectPhase,
+          finalOutput: null,
+          isFinalOutputOpen: false,
+        };
+      }),
 
       setVirtualFile: (path, content) => set((s) => ({
         virtualFiles: { ...s.virtualFiles, [path]: content }

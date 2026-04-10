@@ -61,15 +61,26 @@ CRITICAL: You MUST synthesize all subagent findings, research results, and any u
 The generation model expects a SINGLE prompt to produce a SINGLE ${activeTeam?.outputType}. Be precise.`
       : '';
 
+    const repoInfo = useCoreStore.getState().githubRepo;
+    const repoContext = repoInfo
+      ? `\nGITHUB REPO: ${repoInfo.htmlUrl} (${repoInfo.owner}/${repoInfo.repo}, branch: ${repoInfo.branch})`
+      : '';
+
     const isEngineeringTeam = activeTeam?.id === 'engineering-team';
     const engineeringInstruction = isEngineeringTeam && isLead
       ? `\nENGINEERING TEAM PROTOCOL:
-- Each engineer's 'complete_task' output is REAL CODE inside Markdown code blocks. The first line of every code block MUST be a path comment in the form: // path/to/file.ext (or # path/to/file.ext for shell/Python/yaml). Tell engineers to follow this convention when you propose their tasks.
-- After ALL engineers' tasks are 'done', you MUST call 'create_github_repo' with the FILES ARRAY assembled by parsing every code block from every completed task. One code block = one file. Strip the path comment line from the content if you want, or keep it - either is fine.
+- Each engineer's 'complete_task' output is REAL CODE inside Markdown code blocks. The first line of every code block MUST be a path comment: // path/to/file.ext (or # for shell/Python/yaml). Tell engineers to follow this convention.
+- After ALL engineers' tasks are 'done', follow this sequence:
+  1. VALIDATE: Call 'validate_code' with the full files array parsed from completed tasks. If any file fails, re-task the responsible engineer to fix the syntax errors, wait for completion, then validate again.
+  2. PUSH: Once validation passes, call 'create_github_repo' to create the repo and push all files.
+  3. CHECK BUILD: Call 'check_build' to check GitHub Actions CI status. If status is 'in_progress' or 'queued', wait ~30 seconds and call 'check_build' again (up to 3 checks).
+  4. FIX IF NEEDED: If build conclusion is 'failure', analyze the error, re-task engineers to fix the issue, then use 'push_fix' to commit corrected files. Call 'check_build' again. Repeat up to 3 fix cycles.
+  5. DELIVER: Only call 'deliver_project' when: (a) build conclusion is 'success', (b) no workflows exist, or (c) 3 fix attempts exhausted.
+- 'push_fix' pushes new commits to the EXISTING repo. Use it for all fixes after the initial 'create_github_repo'.
 - repoName: lowercase, hyphens, no spaces (e.g. "weather-cli", "todo-app").
-- ALWAYS include a README.md (project description, setup steps) and a .gitignore appropriate for the stack.
-- After 'create_github_repo' returns SUCCESS, call 'deliver_project' with a short Markdown summary that includes the repo URL as a clickable link: [project-name](https://github.com/...).
-- If 'create_github_repo' returns ERROR about missing GitHub PAT, STOP and tell the user (in chat) to paste their GitHub token in the modal that just opened. Do not retry until they confirm.`
+- ALWAYS include README.md and .gitignore appropriate for the stack.
+- Include the repo URL as a clickable link in deliver_project: [project-name](https://github.com/...).
+- If any GitHub tool returns ERROR about missing PAT, STOP and tell the user to paste their token.`
       : '';
 
     const engineeringEngineerInstruction = isEngineeringTeam && !isLead
@@ -85,7 +96,7 @@ The generation model expects a SINGLE prompt to produce a SINGLE ${activeTeam?.o
 ${brief ? `Brief: ${brief}` : ''}${reviewContext}
 Team: User (0), ${team}
 KANBAN:
-${board}
+${board}${repoContext}
 RULES:
 1. MAX 30 WORDS for chat. Systemic outputs ('complete_task', 'deliver_project', and the task titles/descriptions you create) MUST be under 100 WORDS. NO conversational filler, intros, outros, or self-attribution ("I have done..."). Focus exclusively on core data and synthesis.
 2. Tools only in WORKING (except set_user_brief in IDLE).

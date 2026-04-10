@@ -4,6 +4,9 @@ import { proposeTask } from './tools/proposeTask';
 import { completeTask } from './tools/completeTask';
 import { deliverProject } from './tools/deliverProject';
 import { createGithubRepo } from './tools/createGithubRepo';
+import { validateCode } from './tools/validateCode';
+import { pushFix } from './tools/pushFix';
+import { checkBuild } from './tools/checkBuild';
 import { webSearch } from './tools/webSearch';
 import { readFile } from './tools/readFile';
 import { writeFile } from './tools/writeFile';
@@ -49,6 +52,12 @@ export class ToolRegistry {
         return deliverProject(agent, args);
       case 'create_github_repo':
         return await createGithubRepo(agent, args);
+      case 'validate_code':
+        return await validateCode(agent, args);
+      case 'push_fix':
+        return await pushFix(agent, args);
+      case 'check_build':
+        return await checkBuild(agent, args);
       case 'web_search':
         return await webSearch(agent, args);
       case 'read_file':
@@ -201,6 +210,72 @@ export class ToolRegistry {
                 }
               },
               required: ['repoName', 'description', 'files']
+            }
+          }
+        });
+
+        tools.push({
+          type: 'function',
+          function: {
+            name: 'validate_code',
+            description: 'Validate JavaScript/JSON files for syntax errors before pushing. Pass the files array you plan to push. Returns pass/fail per file. TypeScript files are skipped (browser limitation).',
+            parameters: {
+              type: 'object',
+              properties: {
+                files: {
+                  type: 'array',
+                  description: 'Files to validate.',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      path: { type: 'string' },
+                      content: { type: 'string' }
+                    },
+                    required: ['path', 'content']
+                  }
+                }
+              },
+              required: ['files']
+            }
+          }
+        });
+
+        tools.push({
+          type: 'function',
+          function: {
+            name: 'push_fix',
+            description: 'Push fix commits to the existing GitHub repository. Use AFTER create_github_repo when you need to fix build failures or update files.',
+            parameters: {
+              type: 'object',
+              properties: {
+                files: {
+                  type: 'array',
+                  description: 'Files to update. Same format as create_github_repo files.',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      path: { type: 'string', description: 'Repo-relative file path.' },
+                      content: { type: 'string', description: 'Full updated file contents.' }
+                    },
+                    required: ['path', 'content']
+                  }
+                },
+                message: { type: 'string', description: 'Commit message describing the fix.' }
+              },
+              required: ['files', 'message']
+            }
+          }
+        });
+
+        tools.push({
+          type: 'function',
+          function: {
+            name: 'check_build',
+            description: 'Check the latest GitHub Actions workflow run status. Returns status (queued/in_progress/completed) and conclusion (success/failure). If no workflows exist, treat as pass.',
+            parameters: {
+              type: 'object',
+              properties: {},
+              required: []
             }
           }
         });

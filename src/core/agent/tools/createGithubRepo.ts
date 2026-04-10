@@ -67,6 +67,13 @@ export async function createGithubRepo(
       files: args.files,
     });
 
+    core.setGithubRepo({
+      owner: repo.owner,
+      repo: repo.name,
+      branch: repo.defaultBranch,
+      htmlUrl: repo.htmlUrl,
+    });
+
     core.addLogEntry({
       agentIndex: agent.data.index,
       action: `GitHub repo created: ${repo.htmlUrl} (commit ${commit.commitSha.slice(0, 7)}, ${commit.fileCount} files)`,
